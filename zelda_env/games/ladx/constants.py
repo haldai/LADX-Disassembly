@@ -22,6 +22,7 @@ ENTITY_STATUS_NAMES = {
 
 
 _ENTITY_TYPE_RE = re.compile(r"^\s*DEF\s+(ENTITY_[A-Z0-9_]+)\s+EQU\s+\$([0-9A-Fa-f]{1,2})\b")
+_OBJECT_TYPE_RE = re.compile(r"^\s*DEF\s+(OBJECT_[A-Z0-9_]+)\s+EQU\s+\$([0-9A-Fa-f]{1,2})\b")
 
 
 def load_entity_type_names(repo_root: str | Path = ".") -> dict[int, str]:
@@ -44,4 +45,25 @@ def load_entity_type_names(repo_root: str | Path = ".") -> dict[int, str]:
             continue
         name, value_hex = match.groups()
         names[int(value_hex, 16)] = name
+    return names
+
+
+def load_object_type_names(repo_root: str | Path = ".") -> dict[int, str]:
+    """Load known room object/tile names from graphics constants.
+
+    LADX reuses some object IDs across overworld, indoor, and side-view
+    contexts. When multiple constants share an ID, keep the first readable name
+    and let callers treat it as a best-effort label rather than a unique type.
+    """
+    constants_path = Path(repo_root) / "src" / "constants" / "gfx.asm"
+    if not constants_path.exists():
+        return {}
+
+    names: dict[int, str] = {}
+    for line in constants_path.read_text(encoding="utf-8").splitlines():
+        match = _OBJECT_TYPE_RE.match(line)
+        if not match:
+            continue
+        name, value_hex = match.groups()
+        names.setdefault(int(value_hex, 16), name)
     return names

@@ -69,12 +69,13 @@ class ZeldaEnv(gym.Env if gym is not None else object):
             raise ValueError(f"Unsupported backend for LADX: {backend}")
 
         self.backend = PyBoyBackend(rom_path, sym_path=sym_path)
-        symbols = default_ladx_symbol_table(repo_root or Path.cwd()) if sym_path is None else default_ladx_symbol_table(Path(sym_path).parent)
+        repo_root_path = Path(repo_root) if repo_root is not None else (Path(sym_path).parent if sym_path is not None else Path.cwd())
+        symbols = default_ladx_symbol_table(repo_root_path)
         if sym_path is not None:
             from zelda_env.games.ladx.symbols import SymbolTable
 
             symbols = SymbolTable.from_sym_file(sym_path)
-        self.extractor = LadxStateExtractor(symbols)
+        self.extractor = LadxStateExtractor(symbols, repo_root=repo_root_path)
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         if hasattr(super(), "reset"):

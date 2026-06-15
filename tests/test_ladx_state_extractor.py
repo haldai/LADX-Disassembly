@@ -61,6 +61,13 @@ def test_ladx_state_extractor_returns_generic_json_safe_schema():
     json.dumps(state)
 
     assert state["meta"]["game"] == "ladx"
+    assert state["meta"]["schema_version"] == 2
+    assert state["map"]["location"]["room"] == 0x92
+    assert state["sprites"]["player"]["x"] == 42
+    assert state["sprites"]["player"]["inventory"]["b_button_item"] == 1
+    assert state["sprites"]["slots"]["slot_00"]["type"] == 9
+    assert state["sprites"]["slots"]["slot_00"]["category"] == "enemy"
+    assert state["sprites"]["active"][0]["type_name"] == "ENTITY_OCTOROK"
     assert state["world"]["room"] == 0x92
     assert state["player"]["x"] == 42
     assert state["player"]["y"] == 99

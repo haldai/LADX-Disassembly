@@ -68,7 +68,7 @@ python3 examples/manual_debug_viewer.py --rom-path azle.gbc --sym-path azle.sym 
 The viewer opens:
 
 - the main PyBoy game window for manual control
-- a tile/object mapping window for the current room
+- a tile/object mapping window for the current room, with object ID/name counts below the grid
 - a sprite/entity mapping window that overlays Link plus active entity slot/type IDs and lists entity names
 - a semantic state text window
 
@@ -79,10 +79,12 @@ sprites use stable per-entity-type colors, so repeated enemy/projectile types
 keep the same color across refreshes.
 
 The main emulator advances at normal Game Boy speed by default. The side debug
-windows refresh less frequently so they do not cap gameplay to the debug UI rate:
+windows run in a separate process and receive the latest semantic state through
+a small queue, so slow Tk rendering drops stale debug frames instead of blocking
+gameplay:
 
 ```bash
-python3 examples/manual_debug_viewer.py --speed 1.0 --debug-update-ms 100
+python3 examples/manual_debug_viewer.py --speed 1.0 --debug-update-ms 100 --state-update-ms 100
 ```
 
 ## Save State Generation

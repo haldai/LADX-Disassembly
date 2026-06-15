@@ -7,44 +7,64 @@ trajectory analysis.
 ## Top-Level Sections
 
 - `meta`: game, platform, backend, frame, ROM version, schema version.
-- `world`: map, room, area, indoor/outdoor status, scroll, view mode, floor.
-- `player`: Link position, velocity, direction, action state, health, magic/resources.
-- `inventory`: equipped items, owned items, consumables, capacities.
+- `map`: current map/room location plus runtime room object/tile data.
+- `sprites`: player and entity sprite state, grouped for reward functions.
 - `progress`: long-term quest, dungeon, collection, and save-file progress.
-- `entities`: all sprite/entity slots normalized into per-slot dictionaries.
-- `room`: runtime room object cache, static room objects, initial static entities.
 - `effects`: short-term buffs, debuffs, timers, invincibility, charge states.
 - `flags`: game-specific flags that are useful but not yet promoted to stable fields.
 - `raw`: raw or near-raw memory values for debugging and schema evolution.
 
+Compatibility aliases currently remain available as `world`, `player`,
+`inventory`, `entities`, and `room`. New reward and curriculum code should use
+`map` and `sprites`.
+
+## Sprite Schema
+
+`sprites.player` is Link represented as the player sprite. It includes position,
+movement, health, magic/resources, and nested `inventory` so policies and reward
+functions can read player-owned state from one place.
+
+Runtime entity slots are exposed in two forms:
+
+- `sprites.slots.slot_00` through `sprites.slots.slot_0F`: stable per-slot
+  dictionaries, including disabled slots.
+- `sprites.active`: active entity dictionaries for quick iteration.
+- `sprites.by_category`: active slot IDs grouped by coarse category such as
+  `enemy`, `projectile`, `item`, `npc`, and `object`.
+
+The coarse `category` field is a reward-facing helper derived from known entity
+constant names. Game-specific raw state remains available in `raw`.
+
 ## LADX Mapping
 
-- `player.x`: `hLinkPositionX`
-- `player.y`: `hLinkPositionY`
-- `player.health.current`: `wHealth`
-- `player.health.max`: `wMaxHearts`
-- `player.magic.current`: `None`
-- `player.resources.magic_powder`: `wMagicPowderCount`
-- `world.map_id`: `hMapId`
-- `world.room`: `hMapRoom`
-- `world.is_indoor`: `wIsIndoor`
+- `sprites.player.x`: `hLinkPositionX`
+- `sprites.player.y`: `hLinkPositionY`
+- `sprites.player.health.current`: `wHealth`
+- `sprites.player.health.max`: `wMaxHearts`
+- `sprites.player.magic.current`: `None`
+- `sprites.player.resources.magic_powder`: `wMagicPowderCount`
+- `sprites.player.inventory`: nested inventory/equipment/resources state
+- `map.location.map_id`: `hMapId`
+- `map.location.room`: `hMapRoom`
+- `map.location.is_indoor`: `wIsIndoor`
 - `inventory.items`: `wInventoryItems`
-- `entities[*].type`: `wEntitiesTypeTable[slot]`
-- `entities[*].type_name`: parsed from `src/constants/entities.asm`
-- `entities[*].status`: `wEntitiesStatusTable[slot]`
-- `entities[*].x`: `wEntitiesPosXTable[slot]`
-- `entities[*].y`: `wEntitiesPosYTable[slot]`
+- `sprites.slots.slot_XX.type`: `wEntitiesTypeTable[slot]`
+- `sprites.slots.slot_XX.type_name`: parsed from `src/constants/entities.asm`
+- `sprites.slots.slot_XX.status`: `wEntitiesStatusTable[slot]`
+- `sprites.slots.slot_XX.x`: `wEntitiesPosXTable[slot]`
+- `sprites.slots.slot_XX.y`: `wEntitiesPosYTable[slot]`
 - `effects.active_projectile_count`: `wActiveProjectileCount`
 - `effects.latest_shot_arrow_entity_slot`: `wLatestShotArrowEntityIndex`
-- `room.objects_runtime`: `wRoomObjects`
+- `map.room.objects_runtime`: `wRoomObjects`
+- `map.object_summary`: per-object ID counts with best-effort `OBJECT_*` names
 - `raw.entity_tables`: raw snapshots of the per-slot LADX entity tables that
   are currently mapped by the extractor.
 
 LADX projectiles such as arrows, moblin arrows, bombs, hookshot chain segments,
 magic-rod fireballs, and enemy projectiles are represented as regular entity
 slots in `wEntities*Table`. Reward code should therefore inspect
-`entities[*]` plus the projectile counters in `effects`, instead of expecting a
-separate projectile list.
+`sprites.active` / `sprites.by_category.projectile` plus the projectile counters
+in `effects`, instead of expecting a separate projectile list.
 
 ## ALTTP Compatibility Target
 
