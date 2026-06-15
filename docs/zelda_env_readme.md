@@ -43,7 +43,7 @@ env = ZeldaEnv(
     backend="pyboy",
     rom_path="azle.gbc",
     sym_path="azle.sym",
-    initial_state_path="azle.gbc.start.state",
+    initial_state_path="save_states/azle.gbc.start.state",
 )
 
 obs, info = env.reset()
@@ -54,7 +54,7 @@ env.close()
 Run the random-agent example:
 
 ```bash
-python3 examples/random_agent.py azle.gbc --sym-path azle.sym --initial-state-path azle.gbc.start.state
+python3 examples/random_agent.py azle.gbc --sym-path azle.sym --initial-state-path save_states/azle.gbc.start.state
 ```
 
 ## Manual Debug Viewer
@@ -62,7 +62,7 @@ python3 examples/random_agent.py azle.gbc --sym-path azle.sym --initial-state-pa
 To play manually in PyBoy while watching semantic debug windows:
 
 ```bash
-python3 examples/manual_debug_viewer.py --rom-path azle.gbc --sym-path azle.sym --initial-state-path azle.gbc.start.state
+python3 examples/manual_debug_viewer.py --rom-path azle.gbc --sym-path azle.sym --initial-state-path save_states/azle.gbc.start.state --speed 1.0 --debug-update-ms 0 --state-update-ms 100
 ```
 
 The viewer opens:
@@ -84,18 +84,41 @@ a small queue, so slow Tk rendering drops stale debug frames instead of blocking
 gameplay:
 
 ```bash
-python3 examples/manual_debug_viewer.py --speed 1.0 --debug-update-ms 100 --state-update-ms 100
+python3 examples/manual_debug_viewer.py --rom-path azle.gbc --sym-path azle.sym --initial-state-path save_states/azle.gbc.start.state --speed 1.0 --debug-update-ms 0 --state-update-ms 100
 ```
+
+## Save States
+
+Reusable emulator save states are kept under `save_states/` to keep the project
+root readable. Current local examples include:
+
+- `save_states/azle.gbc.start.state`
+- `save_states/azle.gbc.myst_forest.state`
+- `save_states/azle.gbc.myst_forest.cave.state`
+- `save_states/azle.gbc.state`
 
 ## Save State Generation
 
 You can generate a simple reusable save state after booting for a fixed number of frames:
 
 ```bash
-python3 -m zelda_env.setup_state azle.gbc azle.gbc.start.state --sym-path azle.sym --boot-frames 300
+python3 -m zelda_env.setup_state azle.gbc save_states/azle.gbc.start.state --sym-path azle.sym --boot-frames 300
 ```
 
 For reliable training, prefer a manually verified save state after title/menu setup or a scripted setup flow tailored to the curriculum.
+
+## Trajectory Recording
+
+`InfoStateRecorder` can persist full `info` payloads or compact v2 state
+snapshots. The compact mode keeps `map`, `sprites.player`,
+`sprites.active`, reward terms, and events while omitting large raw memory
+tables:
+
+```python
+from zelda_env.wrappers import InfoStateRecorder
+
+env = InfoStateRecorder(env, "runs/ladx/debug.jsonl", state_mode="compact")
+```
 
 ## Validation
 

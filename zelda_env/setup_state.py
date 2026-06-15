@@ -25,7 +25,9 @@ def generate_ladx_state(
     backend = PyBoyBackend(rom_path, sym_path=sym_path)
     try:
         backend.advance(boot_frames)
-        Path(output_path).write_bytes(backend.save_state())
+        output = Path(output_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(backend.save_state())
     finally:
         backend.close()
 
@@ -48,4 +50,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

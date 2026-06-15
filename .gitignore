@@ -18,6 +18,9 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
+# local emulator captures
+screenshots/*.png
+
 # swap files
 *.swp
 
