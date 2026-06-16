@@ -14,6 +14,12 @@ DumpBanks
 
 # precompiled python
 *.pyc
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# local emulator captures
+screenshots/*.png
 
 # swap files
 *.swp
@@ -33,6 +39,7 @@ DumpBanks
 *~
 
 # save files
+*.ram
 *.sav
 *.ss*
 *.s0

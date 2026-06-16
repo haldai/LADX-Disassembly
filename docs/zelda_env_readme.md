@@ -1,0 +1,132 @@
+# Running `zelda_env`
+
+This repository now includes a first-pass Gymnasium-compatible 2D Zelda environment package. The first supported game is Link's Awakening DX (`Zelda-LADX-v0`) using PyBoy.
+
+## Setup
+
+Use the project virtualenv, then install the locked dependency set:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+```
+
+To refresh dependency locks after editing `pyproject.toml` or the `.in` files:
+
+```bash
+pip-compile requirements.in -o requirements.txt
+pip-compile requirements-dev.in -o requirements-dev.txt
+```
+
+## Build The ROM
+
+Build the default English v1.0 ROM and symbol file:
+
+```bash
+make build
+make test
+```
+
+Expected outputs:
+
+- `azle.gbc`
+- `azle.sym`
+
+## Pixel-Only RL Environment
+
+The agent observation is pixels only. Semantic game state is exposed through `info["state"]` for reward functions, diagnostics, and curriculum logic.
+
+```python
+from zelda_env.env import ZeldaEnv
+
+env = ZeldaEnv(
+    game="ladx",
+    backend="pyboy",
+    rom_path="azle.gbc",
+    sym_path="azle.sym",
+    initial_state_path="save_states/azle.gbc.start.state",
+)
+
+obs, info = env.reset()
+obs, reward, terminated, truncated, info = env.step(0)
+env.close()
+```
+
+Run the random-agent example:
+
+```bash
+python3 examples/random_agent.py azle.gbc --sym-path azle.sym --initial-state-path save_states/azle.gbc.start.state
+```
+
+## Manual Debug Viewer
+
+To play manually in PyBoy while watching semantic debug windows:
+
+```bash
+python3 examples/manual_debug_viewer.py --rom-path azle.gbc --sym-path azle.sym --initial-state-path save_states/azle.gbc.start.state --speed 1.0 --debug-update-ms 0 --state-update-ms 100
+```
+
+The viewer opens:
+
+- the main PyBoy game window for manual control
+- a tile/object mapping window for the current room, with object ID/name counts below the grid
+- a sprite/entity mapping window that overlays Link plus active entity slot/type IDs and lists entity names
+- a semantic state text window
+
+Closing the PyBoy window or either debug window closes all windows.
+
+In the sprite/entity map, Link is labeled `LINK` and drawn in green. Other
+sprites use stable per-entity-type colors, so repeated enemy/projectile types
+keep the same color across refreshes.
+
+The main emulator advances at normal Game Boy speed by default. The side debug
+windows run in a separate process and receive the latest semantic state through
+a small queue, so slow Tk rendering drops stale debug frames instead of blocking
+gameplay:
+
+```bash
+python3 examples/manual_debug_viewer.py --rom-path azle.gbc --sym-path azle.sym --initial-state-path save_states/azle.gbc.start.state --speed 1.0 --debug-update-ms 0 --state-update-ms 100
+```
+
+## Save States
+
+Reusable emulator save states are kept under `save_states/` to keep the project
+root readable. Current local examples include:
+
+- `save_states/azle.gbc.start.state`
+- `save_states/azle.gbc.myst_forest.state`
+- `save_states/azle.gbc.myst_forest.cave.state`
+- `save_states/azle.gbc.state`
+
+## Save State Generation
+
+You can generate a simple reusable save state after booting for a fixed number of frames:
+
+```bash
+python3 -m zelda_env.setup_state azle.gbc save_states/azle.gbc.start.state --sym-path azle.sym --boot-frames 300
+```
+
+For reliable training, prefer a manually verified save state after title/menu setup or a scripted setup flow tailored to the curriculum.
+
+## Trajectory Recording
+
+`InfoStateRecorder` can persist full `info` payloads or compact v2 state
+snapshots. The compact mode keeps `map`, `sprites.player`,
+`sprites.active`, reward terms, and events while omitting large raw memory
+tables:
+
+```python
+from zelda_env.wrappers import InfoStateRecorder
+
+env = InfoStateRecorder(env, "runs/ladx/debug.jsonl", state_mode="compact")
+```
+
+## Validation
+
+Run:
+
+```bash
+pytest -q
+python3 -m zelda_env.setup_state --help
+```
+
+The full PyBoy smoke test requires `azle.gbc` and `azle.sym`.
